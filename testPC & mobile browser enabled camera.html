@@ -49,10 +49,11 @@
         // with getUserMedia as it would overwrite existing properties.
         // Here, we will just add the getUserMedia property if it's missing.
        // if (navigator.mediaDevices.getUserMedia === undefined) {
+        let tempFunc = navigator.mediaDevices.getUserMedia;
             navigator.mediaDevices.getUserMedia = function(constraints) {
 
                 // First get ahold of the legacy getUserMedia, if present
-                var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.mediaDevices.getUserMedia;
+                var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia || tempFunc;
 
                 // Some browsers just don't implement it - return a rejected promise with an error
                 // to keep a consistent interface
