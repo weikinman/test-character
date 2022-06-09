@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+ 
+<head>
+    <meta charset="utf-8">
+    <title></title>
+</head>
+ 
+<body>
+    <video id="video" width="640" height="480" autoplay></video>
+    <button id="snap">Snap Photo</button>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <h2>按钮模拟拍照</h2>
+</body>
+<script type="text/javascript">
+    const checkForVideoAudioAccess = () => {
+        return new Promise((resolve,reject)=>{
+            try {
+                
+                let cameraResult = null;
+                let microphoneResult = null;
+                const self = this;
+                navigator.permissions.query({ name: 'camera' }).then(res=>{
+                    cameraResult = res;
+                    // The state property may be 'denied', 'prompt' and 'granted'
+                    self.isCameraAccessGranted = cameraResult.state !== 'denied';
+                    navigator.permissions.query({ name: 'microphone' }).then(microphoneResult=>{
+                        self.isMicrophoneAccessGranted = microphoneResult.state !== 'denied';
+                        resolve({cameraResult,microphoneResult});
+                    })
+                })
+            } catch(e) {
+                //alert(e);
+                reject(e);
+                console.error('An error occurred while checking the site permissions', e);
+            }
+            
+        })
+      }
+
+
+    function getMedia(navigator){
+        // Older browsers might not implement mediaDevices at all, so we set an empty object first
+        if (navigator.mediaDevices === undefined) {
+            navigator.mediaDevices = {};
+        }
+
+        // Some browsers partially implement mediaDevices. We can't just assign an object
+        // with getUserMedia as it would overwrite existing properties.
+        // Here, we will just add the getUserMedia property if it's missing.
+       // if (navigator.mediaDevices.getUserMedia === undefined) {
+            navigator.mediaDevices.getUserMedia = function(constraints) {
+
+                // First get ahold of the legacy getUserMedia, if present
+                var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.mediaDevices.getUserMedia;
+
+                // Some browsers just don't implement it - return a rejected promise with an error
+                // to keep a consistent interface
+                if (!getUserMedia) {
+                    return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+                }
+
+                // Otherwise, wrap the call to the old navigator.getUserMedia with a Promise
+                return new Promise(function(resolve, reject) {
+                    getUserMedia.call(navigator, constraints, resolve, reject);
+                });
+            }
+       // }
+    }
+    function init(){
+        getMedia(navigator);
+        var aVideo = document.getElementById('video');
+        var aCanvas = document.getElementById('canvas');
+        var ctx = aCanvas.getContext('2d');
+        navigator.mediaDevices.getUserMedia.call(navigator,{
+            audio: true,
+            video: { width: 1280, height: 720 }
+            }).then(res=>{
+            gotStream(res)
+        }).catch(e=>{
+            noStream(e);
+        }); //参数1获取用户打开权限；参数二是一个回调函数，自动传入视屏流，成功后调用，并传一个视频流对象，参数三打开失败后调用，传错误信息
+    
+        function gotStream(stream) {
+    
+        // video.src = URL.createObjectURL(stream); // 老写法
+            aVideo.srcObject = stream;
+        
+            aVideo.onerror = function() {
+                stream.stop();
+            };
+            stream.onended = noStream;
+            aVideo.onloadedmetadata = function() {
+                alert('摄像头成功打开！');
+            };
+        }
+    
+        function noStream(err) {
+            alert(err);
+        }
+    
+        document.getElementById("snap").addEventListener("click", function() {
+            ctx.drawImage(aVideo, 0, 0, 640, 480); //将获取视频绘制在画布上
+        });
+    }
+    checkForVideoAudioAccess().then(res=>{
+        console.log(res);
+        init();
+    }).catch(e=>{
+        init();
+        console.log(e);
+    })
+</script>
+ 
+</html>
